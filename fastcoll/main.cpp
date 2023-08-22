@@ -22,7 +22,7 @@ version 1.0.0.5-1, April 2006.
 
 Copyright
 =========
-© M. Stevens, 2006. All rights reserved.
+ï¿½ M. Stevens, 2006. All rights reserved.
 
 Disclaimer
 ==========
@@ -52,7 +52,7 @@ using namespace std;
 
 const uint32 MD5IV[] = { 0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476 };
 
-unsigned load_block(istream& i, uint32 block[]);
+unsigned load_block(istream& i, uint32 block[], char defpad);
 void save_block(ostream& o, const uint32 block[]);
 void find_collision(const uint32 IV[], uint32 msg1block0[], uint32 msg1block1[], uint32 msg2block0[], uint32 msg2block1[], bool verbose = false);
 
@@ -113,6 +113,7 @@ int main(int argc, char** argv)
 	string ihv;
 	string prefixfn;
 	bool verbose = true;
+	char padding = 0;
 
 	cout <<
 		"MD5 collision generator v1.5\n"
@@ -130,6 +131,7 @@ int main(int argc, char** argv)
 			("ihv,i", po::value<string>(&ihv), "Use specified initial value. Default is MD5 initial value.")
 			("prefixfile,p", po::value<string>(&prefixfn), "Calculate initial value using given prefixfile. Also copies data to output files.")			
 			("out,o", po::value<vector<string> >()->multitoken(), "Set output filenames. This must be the last option and exactly 2 filenames must be specified. \nDefault: -o msg1.bin msg2.bin")
+			("padding,d", po::value<char>(&padding), "Padding byte. Default is \\x00.")
 			;
 
 		po::options_description hidden;
@@ -210,6 +212,9 @@ int main(int argc, char** argv)
 			return 1;
 		}
 
+		if (vm.count("padding"))
+			padding = vm["padding"].as<char>();
+
 		if (vm.count("prefixfile"))
 		{
 			if (verbose)
@@ -223,7 +228,7 @@ int main(int argc, char** argv)
 			uint32 block[16];
 			while (true)
 			{
-				unsigned len = load_block(ifs, block);
+				unsigned len = load_block(ifs, block, padding);
 				if (len)
 				{
 					save_block(ofs1, block);
@@ -386,7 +391,7 @@ void test_all()
 #endif
 
 
-unsigned load_block(istream& i, uint32 block[])
+unsigned load_block(istream& i, uint32 block[], char defpad)
 {
 	unsigned len = 0;
 	char uc;
@@ -399,7 +404,7 @@ unsigned load_block(istream& i, uint32 block[])
 			if (i) 
 				++len;
 			else
-				uc = 0;
+				uc = defpad;
 			block[k] += uint32((unsigned char)(uc))<<(c*8);
 		}
 	}
